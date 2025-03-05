@@ -21,15 +21,16 @@ Route::post('/login', function (Request $request) {
         return response()->json(['message' => 'Invalid student ID'], 401);
     }
 
-    // Normalize and remove special characters
+    // Function to clean names by removing ALL special characters (including hyphens)
     function sanitizeName($name)
     {
-        // Convert to ASCII (removes accents like é -> e)
-        $name = iconv('UTF-8', 'ASCII//TRANSLIT', $name);
-        // Remove non-alphabetic characters
-        return preg_replace('/[^a-zA-Z]/', '', $name);
+        // Convert to lowercase for consistency
+        $name = strtolower($name);
+        // Remove all characters except letters (removes hyphens, apostrophes, numbers, etc.)
+        return preg_replace('/[^a-z]/', '', $name);
     }
 
+    // Sanitize first and last names
     $first_name = sanitizeName($student->first_name);
     $last_name = sanitizeName($student->last_name);
 
