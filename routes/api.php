@@ -15,18 +15,18 @@ Route::post('/login', function (Request $request) {
         'password' => 'required',
     ]);
 
+    // Move the sanitization function outside the route closure
+    function sanitizeName($name)
+    {
+        // Remove ALL special characters, including hyphens and apostrophes
+        return preg_replace('/[^A-Za-z0-9]/', '', strtolower($name));
+    }
+
     $student = Student::where('student_id', $request->student_id)->first();
 
     if (!$student) {
         return response()->json(['message' => 'Invalid student ID'], 401);
     }
-
-    // Function to clean names by removing ALL special characters (including hyphens)
-    function sanitizeName($name)
-    {
-        return preg_replace('/[^a-zA-Z]/', '', strtolower($name));
-    }
-
 
     $first_name = sanitizeName($student->first_name);
     $last_name = sanitizeName($student->last_name);
