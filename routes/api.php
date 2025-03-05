@@ -21,9 +21,9 @@ Route::post('/login', function (Request $request) {
         return response()->json(['message' => 'Invalid student ID'], 401);
     }
 
-    // Fetch first name and last name from the database
-    $first_name = $student->first_name;
-    $last_name = $student->last_name;
+    // Sanitize first name and last name: remove special characters
+    $first_name = preg_replace('/[^a-zA-Z]/', '', $student->first_name);
+    $last_name = preg_replace('/[^a-zA-Z]/', '', $student->last_name);
 
     // Generate expected password format
     $expectedPassword = strtolower(Str::substr($first_name, 0, 2) . Str::substr($last_name, 0, 2) . $request->student_id);
