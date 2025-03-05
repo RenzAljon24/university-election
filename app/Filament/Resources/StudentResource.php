@@ -59,9 +59,9 @@ class StudentResource extends Resource
                     ->sortable()
                     ->badge()
                     ->label('Department'),
-                TextColumn::make('student_id')->sortable()->searchable(),
-                TextColumn::make('first_name')->sortable()->searchable(),
-                TextColumn::make('last_name')->sortable()->searchable(),
+                TextColumn::make('student_id')->sortable()->searchable()->searchable('student_id'),
+                TextColumn::make('first_name')->sortable()->searchable()->searchable('first_name'),
+                TextColumn::make('last_name')->sortable()->searchable()->searchable('last_name'),
                 TextColumn::make('elections')
                     ->label('Assigned Elections')
                     ->formatStateUsing(fn($record) => $record->elections->pluck('name')->join(', ')),
