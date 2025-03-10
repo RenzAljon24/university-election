@@ -53,7 +53,7 @@ class VoteResource extends Resource
                                     $position = $vote->candidate->position ?? 'Unknown Position'; // ✅ Avoids errors if position is null
                                     return "{$vote->candidate->name} ({$position} - {$vote->election->name})";
                                 } else {
-                                    return "Abstained in {$vote->election->name}"; // ✅ Fix for null candidate
+                                    return "Abstained in {$vote->election->position}"; // ✅ Fix for null candidate
                                 }
                             })
                             ->implode(', ');

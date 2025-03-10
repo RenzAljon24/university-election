@@ -4,23 +4,19 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\StudentResource\Pages;
 use App\Models\Student;
+use App\Models\Election;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Forms\Components\Select;
-
 use Filament\Tables\Columns\TextColumn;
-
-
 
 class StudentResource extends Resource
 {
     protected static ?string $model = Student::class;
     protected static ?string $navigationGroup = 'Election';
-
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
     protected static ?string $navigationBadgeTooltip = 'The number of students';
-
 
     public static function getNavigationBadge(): ?string
     {
@@ -42,14 +38,10 @@ class StudentResource extends Resource
                     ->required(),
                 Select::make('elections')
                     ->multiple()
-                    ->relationship('elections', 'name')
+                    ->relationship('elections', 'name') // Correct relationship usage
                     ->label('Assigned Elections'),
             ]);
     }
-
-
-
-
 
     public static function table(Tables\Table $table): Tables\Table
     {
@@ -59,12 +51,12 @@ class StudentResource extends Resource
                     ->sortable()
                     ->badge()
                     ->label('Department'),
-                TextColumn::make('student_id')->sortable()->searchable(isIndividual: true),
-                TextColumn::make('first_name')->sortable()->searchable(isIndividual: true),
-                TextColumn::make('last_name')->sortable()->searchable(isIndividual: true),
-                TextColumn::make('elections')
+                TextColumn::make('student_id')->sortable()->searchable(),
+                TextColumn::make('first_name')->sortable()->searchable(),
+                TextColumn::make('last_name')->sortable()->searchable(),
+                TextColumn::make('elections.name')
                     ->label('Assigned Elections')
-                    ->formatStateUsing(fn($record) => $record->elections->pluck('name')->join(', ')),
+                    ->formatStateUsing(fn($record) => $record->elections->pluck('name')->join(', ')), // Ensure elections are displayed properly
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('department')
@@ -81,7 +73,7 @@ class StudentResource extends Resource
                     ->form(fn($records) => [
                         Select::make('elections')
                             ->multiple()
-                            ->relationship('elections', 'name')
+                            ->options(Election::pluck('name', 'id')->toArray()) // Get available elections
                             ->label('Assign to Elections')
                             ->default(
                                 $records->flatMap(fn($record) => $record->elections->pluck('id'))->unique()->toArray()
@@ -89,28 +81,17 @@ class StudentResource extends Resource
                     ])
                     ->action(function ($records, $data) {
                         $records->each(function ($record) use ($data) {
-                            $existingElections = $record->elections->pluck('id')->toArray();
-                            $newElections = array_merge($existingElections, $data['elections']);
-                            $record->elections()->sync(array_unique($newElections)); // Keep old & new elections
+                            $record->elections()->sync($data['elections']); // Sync elections
                         });
                     })
                     ->deselectRecordsAfterCompletion(),
             ])
-
-
             ->modifyQueryUsing(
                 fn(\Illuminate\Database\Eloquent\Builder $query) =>
                 $query->orderBy('department')->orderBy('last_name')
             )
-
             ->searchPlaceholder('Search students...');
     }
-
-
-
-
-
-
 
     public static function getRelations(): array
     {
