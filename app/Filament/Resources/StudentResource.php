@@ -4,23 +4,20 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\StudentResource\Pages;
 use App\Models\Student;
+use App\Models\Election;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Forms\Components\Select;
-
 use Filament\Tables\Columns\TextColumn;
-
-
+use Illuminate\Support\Facades\DB;
 
 class StudentResource extends Resource
 {
     protected static ?string $model = Student::class;
     protected static ?string $navigationGroup = 'Election';
-
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
     protected static ?string $navigationBadgeTooltip = 'The number of students';
-
 
     public static function getNavigationBadge(): ?string
     {
@@ -47,10 +44,6 @@ class StudentResource extends Resource
             ]);
     }
 
-
-
-
-
     public static function table(Tables\Table $table): Tables\Table
     {
         return $table
@@ -59,12 +52,15 @@ class StudentResource extends Resource
                     ->sortable()
                     ->badge()
                     ->label('Department'),
-                TextColumn::make('student_id')->sortable()->searchable(isIndividual: true),
-                TextColumn::make('first_name')->sortable()->searchable(isIndividual: true),
-                TextColumn::make('last_name')->sortable()->searchable(isIndividual: true),
-                TextColumn::make('elections')
+                TextColumn::make('student_id')->sortable()->searchable(),
+                TextColumn::make('first_name')->sortable()->searchable(),
+                TextColumn::make('last_name')->sortable()->searchable(),
+                TextColumn::make('elections.name')
                     ->label('Assigned Elections')
-                    ->formatStateUsing(fn($record) => $record->elections->pluck('name')->join(', ')),
+                    ->formatStateUsing(
+                        fn($record) =>
+                        $record->elections->pluck('name')->join(', ')
+                    ),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('department')
@@ -76,47 +72,63 @@ class StudentResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
+
+
                 Tables\Actions\BulkAction::make('bulk_edit_elections')
                     ->label('Assign Elections')
-                    ->form(fn($records) => [
+                    ->form([
                         Select::make('elections')
                             ->multiple()
-                            ->relationship('elections', 'name')
+                            ->options(Election::pluck('name', 'id')->toArray())
                             ->label('Assign to Elections')
-                            ->default(
-                                $records->flatMap(fn($record) => $record->elections->pluck('id'))->unique()->toArray()
-                            ), // Preload existing elections
+                            ->default([]),
                     ])
-                    ->action(function ($records, $data) {
-                        $records->each(function ($record) use ($data) {
-                            $existingElections = $record->elections->pluck('id')->toArray();
-                            $newElections = array_merge($existingElections, $data['elections']);
-                            $record->elections()->sync(array_unique($newElections)); // Keep old & new elections
+                    ->action(function ($livewire, $data) {
+                        // Select only students who are not assigned to an election
+                        $selectedIds = Student::whereDoesntHave('elections')
+                            ->whereIn('id', $livewire->selectedTableRecords)
+                            ->limit(1000)
+                            ->pluck('id')
+                            ->toArray();
+
+                        if (empty($selectedIds)) {
+                            return;
+                        }
+
+                        // Process in chunks to prevent memory exhaustion
+                        collect($selectedIds)->chunk(1000)->each(function ($chunk) use ($data) {
+                            DB::table('election_student')->whereIn('student_id', $chunk)->delete();
+
+                            $insertData = [];
+                            foreach ($chunk as $studentId) {
+                                foreach ($data['elections'] as $electionId) {
+                                    $insertData[] = [
+                                        'student_id' => $studentId,
+                                        'election_id' => $electionId,
+                                    ];
+                                }
+                            }
+
+                            foreach (array_chunk($insertData, 1000) as $batch) {
+                                DB::table('election_student')->insert($batch);
+                            }
                         });
                     })
                     ->deselectRecordsAfterCompletion(),
+
+
+
             ])
-
-
             ->modifyQueryUsing(
                 fn(\Illuminate\Database\Eloquent\Builder $query) =>
                 $query->orderBy('department')->orderBy('last_name')
             )
-
             ->searchPlaceholder('Search students...');
     }
 
-
-
-
-
-
-
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array
