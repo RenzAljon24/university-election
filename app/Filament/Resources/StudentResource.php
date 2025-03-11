@@ -34,7 +34,15 @@ class StudentResource extends Resource
                     ->required(),
                 Forms\Components\TextInput::make('last_name')
                     ->required(),
-                Forms\Components\TextInput::make('department')
+                Forms\Components\TextInput::make('college')
+                    ->required(),
+                Forms\Components\TextInput::make('course')
+                    ->required(),
+                Forms\Components\TextInput::make('session')
+                    ->required(),
+                Forms\Components\TextInput::make('semester')
+                    ->required(),
+                Forms\Components\TextInput::make('learning_modality')
                     ->required(),
                 Select::make('elections')
                     ->multiple()
@@ -47,20 +55,37 @@ class StudentResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('department')
+                TextColumn::make('college')
                     ->sortable()
                     ->badge()
-                    ->label('Department'),
+
+                    ->label('College'),
                 TextColumn::make('student_id')->sortable()->searchable(),
                 TextColumn::make('first_name')->sortable()->searchable(),
                 TextColumn::make('last_name')->sortable()->searchable(),
+                TextColumn::make('middle_name')->sortable()->searchable(),
+                TextColumn::make('course')->sortable()->searchable(),
+                TextColumn::make('session')->sortable()->searchable(),
+                TextColumn::make('semester')->sortable()->searchable(),
+                TextColumn::make('learning_modality')->sortable()->searchable(),
+
                 TextColumn::make('elections.name')
                     ->label('Assigned Elections')
-                    ->formatStateUsing(fn($record) => $record->elections->pluck('name')->join(', ')), // Ensure elections are displayed properly
+                    ->formatStateUsing(
+                        fn($record) =>
+                        $record->elections->pluck('name')->join(', ')
+                    ),
+
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('department')
-                    ->options(Student::query()->pluck('department', 'department')->toArray()),
+                Tables\Filters\SelectFilter::make('college')
+                    ->options(Student::query()->pluck('college', 'college')->toArray()),
+
+                Tables\Filters\SelectFilter::make('course')
+                    ->options(Student::query()->pluck('course', 'course')->toArray()),
+
+                Tables\Filters\SelectFilter::make('semester')
+                    ->options(Student::query()->pluck('semester', 'semester')->toArray()),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -88,7 +113,7 @@ class StudentResource extends Resource
             ])
             ->modifyQueryUsing(
                 fn(\Illuminate\Database\Eloquent\Builder $query) =>
-                $query->orderBy('department')->orderBy('last_name')
+                $query->orderBy('college')->orderBy('last_name')
             )
             ->searchPlaceholder('Search students...');
     }
