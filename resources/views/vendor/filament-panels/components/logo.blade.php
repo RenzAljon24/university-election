@@ -1,0 +1,1 @@
+<img src="{{  asset('/images/favico.ico') }}" alt="Filament" class="h-10 w-auto">

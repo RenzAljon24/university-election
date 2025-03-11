@@ -10,7 +10,6 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Forms\Components\Select;
 use Filament\Tables\Columns\TextColumn;
-use Illuminate\Support\Facades\DB;
 
 class StudentResource extends Resource
 {
@@ -35,11 +34,19 @@ class StudentResource extends Resource
                     ->required(),
                 Forms\Components\TextInput::make('last_name')
                     ->required(),
-                Forms\Components\TextInput::make('department')
+                Forms\Components\TextInput::make('college')
+                    ->required(),
+                Forms\Components\TextInput::make('course')
+                    ->required(),
+                Forms\Components\TextInput::make('session')
+                    ->required(),
+                Forms\Components\TextInput::make('semester')
+                    ->required(),
+                Forms\Components\TextInput::make('learning_modality')
                     ->required(),
                 Select::make('elections')
                     ->multiple()
-                    ->relationship('elections', 'name')
+                    ->relationship('elections', 'name') // Correct relationship usage
                     ->label('Assigned Elections'),
             ]);
     }
@@ -48,13 +55,19 @@ class StudentResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('department')
+                TextColumn::make('college')
                     ->sortable()
                     ->badge()
-                    ->label('Department'),
+                    ->label('College'),
                 TextColumn::make('student_id')->sortable()->searchable(),
                 TextColumn::make('first_name')->sortable()->searchable(),
                 TextColumn::make('last_name')->sortable()->searchable(),
+                TextColumn::make('middle_name')->sortable()->searchable(),
+                TextColumn::make('course')->sortable()->searchable(),
+                TextColumn::make('session')->sortable()->searchable(),
+                TextColumn::make('semester')->sortable()->searchable(),
+                TextColumn::make('learning_modality')->sortable()->searchable(),
+
                 TextColumn::make('elections.name')
                     ->label('Assigned Elections')
                     ->formatStateUsing(
@@ -63,8 +76,14 @@ class StudentResource extends Resource
                     ),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('department')
-                    ->options(Student::query()->pluck('department', 'department')->toArray()),
+                Tables\Filters\SelectFilter::make('college')
+                    ->options(Student::query()->pluck('college', 'college')->toArray()),
+
+                Tables\Filters\SelectFilter::make('course')
+                    ->options(Student::query()->pluck('course', 'course')->toArray()),
+
+                Tables\Filters\SelectFilter::make('semester')
+                    ->options(Student::query()->pluck('semester', 'semester')->toArray()),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -72,63 +91,36 @@ class StudentResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
-
-
                 Tables\Actions\BulkAction::make('bulk_edit_elections')
                     ->label('Assign Elections')
-                    ->form([
+                    ->form(fn($records) => [
                         Select::make('elections')
                             ->multiple()
-                            ->options(Election::pluck('name', 'id')->toArray())
+                            ->options(Election::pluck('name', 'id')->toArray()) // Get available elections
                             ->label('Assign to Elections')
-                            ->default([]),
+                            ->default(
+                                $records->flatMap(fn($record) => $record->elections->pluck('id'))->unique()->toArray()
+                            ), // Preload existing elections
                     ])
-                    ->action(function ($livewire, $data) {
-                        // Select only students who are not assigned to an election
-                        $selectedIds = Student::whereDoesntHave('elections')
-                            ->whereIn('id', $livewire->selectedTableRecords)
-                            ->limit(1000)
-                            ->pluck('id')
-                            ->toArray();
-
-                        if (empty($selectedIds)) {
-                            return;
-                        }
-
-                        // Process in chunks to prevent memory exhaustion
-                        collect($selectedIds)->chunk(1000)->each(function ($chunk) use ($data) {
-                            DB::table('election_student')->whereIn('student_id', $chunk)->delete();
-
-                            $insertData = [];
-                            foreach ($chunk as $studentId) {
-                                foreach ($data['elections'] as $electionId) {
-                                    $insertData[] = [
-                                        'student_id' => $studentId,
-                                        'election_id' => $electionId,
-                                    ];
-                                }
-                            }
-
-                            foreach (array_chunk($insertData, 1000) as $batch) {
-                                DB::table('election_student')->insert($batch);
-                            }
+                    ->action(function ($records, $data) {
+                        $records->each(function ($record) use ($data) {
+                            $record->elections()->sync($data['elections']); // Sync elections
                         });
                     })
                     ->deselectRecordsAfterCompletion(),
-
-
-
             ])
             ->modifyQueryUsing(
                 fn(\Illuminate\Database\Eloquent\Builder $query) =>
-                $query->orderBy('department')->orderBy('last_name')
+                $query->orderBy('college')->orderBy('last_name')
             )
             ->searchPlaceholder('Search students...');
     }
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            //
+        ];
     }
 
     public static function getPages(): array
