@@ -58,6 +58,7 @@ class StudentResource extends Resource
                 TextColumn::make('college')
                     ->sortable()
                     ->badge()
+
                     ->label('College'),
                 TextColumn::make('student_id')->sortable()->searchable(),
                 TextColumn::make('first_name')->sortable()->searchable(),
@@ -74,6 +75,7 @@ class StudentResource extends Resource
                         fn($record) =>
                         $record->elections->pluck('name')->join(', ')
                     ),
+
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('college')
