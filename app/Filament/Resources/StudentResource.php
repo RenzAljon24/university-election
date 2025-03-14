@@ -14,7 +14,7 @@ use Filament\Tables\Columns\TextColumn;
 class StudentResource extends Resource
 {
     protected static ?string $model = Student::class;
-    protected static ?string $navigationGroup = 'Election';
+    protected static ?string $navigationGroup = 'Election Management';
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
     protected static ?string $navigationBadgeTooltip = 'The number of students';
 
@@ -60,16 +60,17 @@ class StudentResource extends Resource
                     ->badge()
 
                     ->label('College'),
-                TextColumn::make('student_id')->sortable()->searchable(),
-                TextColumn::make('first_name')->sortable()->searchable(),
-                TextColumn::make('last_name')->sortable()->searchable(),
-                TextColumn::make('middle_name')->sortable()->searchable(),
-                TextColumn::make('course')->sortable()->searchable(),
+                TextColumn::make('student_id')->sortable()->searchable(isIndividual: true),
+                TextColumn::make('first_name')->sortable()->searchable(isIndividual: true),
+                TextColumn::make('last_name')->sortable()->searchable(isIndividual: true),
+                TextColumn::make('middle_name')->sortable()->searchable(isIndividual: true),
+                TextColumn::make('course')->sortable()->searchable(isIndividual: true),
                 TextColumn::make('session')->sortable()->searchable(),
                 TextColumn::make('semester')->sortable()->searchable(),
                 TextColumn::make('learning_modality')->sortable()->searchable(),
 
                 TextColumn::make('elections.name')
+                    ->searchable(isIndividual: true)
                     ->label('Assigned Elections')
                     ->formatStateUsing(
                         fn($record) =>

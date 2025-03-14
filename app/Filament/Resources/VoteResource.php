@@ -12,13 +12,12 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
 
 class VoteResource extends Resource
 {
     protected static ?string $model = Vote::class;
-    protected static ?string $navigationGroup = 'Election';
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationGroup = 'Election Management';
+    protected static ?string $navigationIcon = 'heroicon-o-inbox-arrow-down';
 
     public static function form(Form $form): Form
     {
@@ -46,36 +45,34 @@ class VoteResource extends Resource
                     ->label('Voted Candidates')
                     ->getStateUsing(function ($record) {
                         return Vote::where('student_id', $record->student_id)
-                            ->with(['candidate', 'election']) // ✅ Only loading required relationships
+                            ->with(['candidate', 'election'])
                             ->get()
                             ->map(function ($vote) {
                                 if ($vote->candidate) {
-                                    $position = $vote->candidate->position ?? 'Unknown Position'; // ✅ Avoids errors if position is null
+                                    $position = $vote->candidate->position ?? 'Unknown Position';
                                     return "{$vote->candidate->name} ({$position} - {$vote->election->name})";
-                                } else {
-                                    return "Abstained in {$vote->election->position}"; // ✅ Fix for null candidate
                                 }
+                                return "Abstained ({$vote->position} - {$vote->election->name})"; // Use vote.position, not election->position
                             })
                             ->implode(', ');
                     }),
 
-                TextColumn::make('voted_at')
+                TextColumn::make('latest_voted_at')
                     ->label('Last Voted At')
+                    ->getStateUsing(function ($record) {
+                        return Vote::where('student_id', $record->student_id)
+                            ->max('voted_at');
+                    })
                     ->sortable(),
             ])
             ->modifyQueryUsing(function (Builder $query) {
-                // Create a subquery for the latest votes by student
-                $latestVotes = DB::table('votes')
-                    ->select('student_id', DB::raw('MAX(voted_at) as voted_at'))
-                    ->groupBy('student_id');
-
-                // Join this back to the main votes table to get all columns
                 return $query
-                    ->joinSub($latestVotes, 'latest_votes', function ($join) {
-                    $join->on('votes.student_id', '=', 'latest_votes.student_id')
-                        ->on('votes.voted_at', '=', 'latest_votes.voted_at');
-                });
+                    ->select('votes.student_id')
+                    ->selectRaw('MAX(votes.id) as id') // For actions
+                    ->groupBy('votes.student_id')
+                    ->with(['student']);
             })
+            ->defaultSort('student.student_id', 'asc')
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),

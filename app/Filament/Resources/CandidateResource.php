@@ -21,8 +21,8 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class CandidateResource extends Resource
 {
     protected static ?string $model = Candidate::class;
-    protected static ?string $navigationGroup = 'Election';
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationGroup = 'Election Management';
+    protected static ?string $navigationIcon = 'heroicon-o-user';
 
     public static function form(Forms\Form $form): Forms\Form
     {
