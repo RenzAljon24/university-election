@@ -26,8 +26,8 @@ class PartylistResource extends Resource
 {
     protected static ?string $model = Partylist::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-    protected static ?string $navigationGroup = 'Election';
+    protected static ?string $navigationIcon = 'heroicon-o-flag';
+    protected static ?string $navigationGroup = 'Election Management';
     public static function form(Forms\Form $form): Forms\Form
     {
         return $form

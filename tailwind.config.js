@@ -10,7 +10,9 @@ export default {
         './resources/**/*.vue',
     ],
     theme: {
+        darkMode: 'class',
         extend: {
+            darkMode: 'class',
             fontFamily: {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
             },

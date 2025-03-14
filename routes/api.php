@@ -8,46 +8,49 @@ use App\Models\Vote;
 use App\Models\Candidate;
 
 
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+
+
 
 Route::post('/login', function (Request $request) {
     $request->validate([
-        'student_id' => 'required',
-        'password' => 'required',
+        'student_id' => 'required|string',
+        'password' => 'required|string',
     ]);
 
-    $student = Student::where('student_id', $request->student_id)->first();
+    if (RateLimiter::tooManyAttempts('login:' . $request->student_id, 5)) {
+        return response()->json(['message' => 'Too many attempts. Try again later.'], 429);
+    }
+
+    // Use cache to reduce database hits
+    $student = Cache::remember("student_{$request->student_id}", 600, function () use ($request) {
+        return Student::where('student_id', $request->student_id)->first();
+    });
 
     if (!$student) {
-        return response()->json(['message' => 'Invalid student ID'], 401);
+        return response()->json(['message' => 'Invalid credentials'], 401);
     }
-
-    // Function to clean names by removing ALL special characters (including hyphens)
-    function sanitizeName($name)
-    {
-        // Convert to lowercase for consistency
-        $name = strtolower($name);
-        // Remove all characters except letters (removes hyphens, apostrophes, numbers, etc.)
-        return preg_replace('/[^a-z]/', '', $name);
-    }
-
-    // Sanitize first and last names
-    $first_name = sanitizeName($student->first_name);
-    $last_name = sanitizeName($student->last_name);
 
     // Generate expected password format
-    $expectedPassword = strtolower(Str::substr($first_name, 0, 2) . Str::substr($last_name, 0, 2) . $request->student_id);
+    $expectedPassword = strtolower(substr($student->first_name, 0, 2) . substr($student->last_name, 0, 2) . $student->student_id);
 
+    // Check if password matches
     if ($request->password !== $expectedPassword) {
         return response()->json(['message' => 'Invalid credentials'], 401);
     }
 
+    RateLimiter::clear('login:' . $request->student_id);
+
+    // Reuse existing token if available
+    $token = $student->tokens()->latest()->first()?->token ?? $student->createToken('auth_token')->plainTextToken;
+
     return response()->json([
         'message' => 'Login successful',
-        'student' => [
-            'id' => $student->id,
-            'student_id' => $student->student_id,
-            'name' => $student->name
-        ]
+        'token' => $token,
+        'student' => $student
     ]);
 });
 Route::get('/student/{id}/elections', function ($id) {
@@ -131,8 +134,10 @@ Route::post('/vote', function (Request $request) {
     }
 });
 Route::post('/logout', function (Request $request) {
+    $request->user()->currentAccessToken()->delete(); // Revoke the token
     return response()->json(['message' => 'Logged out successfully']);
-});
+})->middleware('auth:sanctum');
+
 Route::get('/student/{id}/elections-with-candidates', function ($id) {
     $student = Student::with('elections.partylists.candidates')->find($id);
 

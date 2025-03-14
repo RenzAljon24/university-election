@@ -21,7 +21,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class ElectionResource extends Resource
 {
     protected static ?string $model = Election::class;
-    protected static ?string $navigationGroup = 'Election';
+    protected static ?string $navigationGroup = 'Election Management';
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form
