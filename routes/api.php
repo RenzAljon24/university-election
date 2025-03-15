@@ -162,7 +162,8 @@ Route::get('/student/{id}/elections-with-candidates', function ($id) {
                             return [
                                 'id' => $candidate->id,
                                 'name' => $candidate->name,
-                                'photo' => $candidate->photo ? URL::to('/storage/' . $candidate->photo) : null
+                                'photo' => $candidate->photo ? URL::to('/storage/' . $candidate->photo) : null,
+                                'created_at' => $candidate->created_at->toISOString(), // Add created_at
                             ];
                         });
                     })
