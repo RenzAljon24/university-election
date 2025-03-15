@@ -141,7 +141,7 @@ Route::post('/logout', function (Request $request) {
 Route::get('/student/{id}/elections-with-candidates', function ($id) {
     $student = Student::with([
         'elections.partylists.candidates' => function ($query) {
-            $query->orderBy('created_at', 'asc'); // Order candidates by creation time
+            $query->orderBy('created_at', 'asc'); // Pre-order candidates by creation time
         }
     ])->find($id);
 
@@ -150,25 +150,46 @@ Route::get('/student/{id}/elections-with-candidates', function ($id) {
     }
 
     $data = $student->elections->map(function ($election) {
+        // Collect all candidates into a position-based structure
+        $positionCandidates = [];
+
+        foreach ($election->partylists as $partylist) {
+            foreach ($partylist->candidates as $candidate) {
+                $position = $candidate->position;
+
+                if (!isset($positionCandidates[$position])) {
+                    $positionCandidates[$position] = [];
+                }
+
+                $positionCandidates[$position][] = [
+                    'id' => $candidate->id,
+                    'name' => $candidate->name,
+                    'photo' => $candidate->photo ? URL::to('/storage/' . $candidate->photo) : null,
+                    'partylist_name' => $partylist->name,
+                    'created_at' => $candidate->created_at->toISOString(), // Include for ordering
+                ];
+            }
+        }
+
+        // Sort positions by the earliest created_at
+        uasort($positionCandidates, function ($a, $b) {
+            $minA = min(array_column($a, 'created_at'));
+            $minB = min(array_column($b, 'created_at'));
+            return $minA <=> $minB;
+        });
+
+        // Remove created_at from the final output (optional; keep if frontend needs it)
+        $positions = array_map(function ($candidates) {
+            return array_map(function ($candidate) {
+                unset($candidate['created_at']); // Remove if not needed in frontend
+                return $candidate;
+            }, $candidates);
+        }, $positionCandidates);
+
         return [
             'election_id' => $election->id,
             'election_name' => $election->name,
-            'partylists' => $election->partylists->map(function ($partylist) {
-                return [
-                    'partylist_id' => $partylist->id,
-                    'partylist_name' => $partylist->name,
-                    'candidates' => $partylist->candidates->sortBy('created_at')->groupBy('position')->map(function ($candidates) {
-                        return $candidates->map(function ($candidate) {
-                            return [
-                                'id' => $candidate->id,
-                                'name' => $candidate->name,
-                                'photo' => $candidate->photo ? URL::to('/storage/' . $candidate->photo) : null,
-                                'created_at' => $candidate->created_at->toISOString(), // Add created_at
-                            ];
-                        });
-                    })
-                ];
-            })
+            'positions' => $positions,
         ];
     });
 
