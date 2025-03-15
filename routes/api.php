@@ -139,7 +139,11 @@ Route::post('/logout', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::get('/student/{id}/elections-with-candidates', function ($id) {
-    $student = Student::with('elections.partylists.candidates')->find($id);
+    $student = Student::with([
+        'elections.partylists.candidates' => function ($query) {
+            $query->orderBy('created_at', 'asc'); // Order candidates by creation time
+        }
+    ])->find($id);
 
     if (!$student) {
         return response()->json(['message' => 'Student not found'], 404);
@@ -153,7 +157,7 @@ Route::get('/student/{id}/elections-with-candidates', function ($id) {
                 return [
                     'partylist_id' => $partylist->id,
                     'partylist_name' => $partylist->name,
-                    'candidates' => $partylist->candidates->groupBy('position')->map(function ($candidates) {
+                    'candidates' => $partylist->candidates->sortBy('created_at')->groupBy('position')->map(function ($candidates) {
                         return $candidates->map(function ($candidate) {
                             return [
                                 'id' => $candidate->id,
@@ -169,7 +173,6 @@ Route::get('/student/{id}/elections-with-candidates', function ($id) {
 
     return response()->json($data);
 });
-
 
 
 Route::get('/student/{id}/voting-status', function ($id) {
