@@ -16,12 +16,6 @@ class StudentResource extends Resource
     protected static ?string $model = Student::class;
     protected static ?string $navigationGroup = 'Election Management';
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
-    protected static ?string $navigationBadgeTooltip = 'The number of students';
-
-    public static function getNavigationBadge(): ?string
-    {
-        return static::getModel()::count();
-    }
 
     public static function form(Forms\Form $form): Forms\Form
     {
@@ -46,7 +40,7 @@ class StudentResource extends Resource
                     ->required(),
                 Select::make('elections')
                     ->multiple()
-                    ->relationship('elections', 'name') // Correct relationship usage
+                    ->relationship('elections', 'name')
                     ->label('Assigned Elections'),
             ]);
     }

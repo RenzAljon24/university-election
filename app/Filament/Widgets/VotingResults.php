@@ -8,6 +8,7 @@ use App\Models\Election;
 class VotingResults extends Widget
 {
     protected static string $view = 'filament.widgets.voting-results';
+    protected int|array|string $columnSpan = 'full'; // ✅ Correct type
 
     public $elections;
 
@@ -26,7 +27,7 @@ class VotingResults extends Widget
                             'partylist' => $candidate->partylist?->name ?? 'Independent',
                             'votes' => $candidate->votes->count(),
                         ];
-                    })->sortByDesc('votes')->groupBy('position'), // ✅ Sort by votes, group by position
+                    })->groupBy('position'), // ❌ Removed sortByDesc('votes')
                 ];
             });
     }

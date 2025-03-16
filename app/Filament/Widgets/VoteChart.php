@@ -9,7 +9,9 @@ use Carbon\Carbon;
 
 class VoteChart extends ChartWidget
 {
-    protected static ?string $heading = 'Total Number of Voters';
+    protected static ?string $heading = 'Total Number of Voters'; // ✅ Static property
+
+    protected int|array|string $columnSpan = 'full'; // ✅ Correct type
 
     protected function getData(): array
     {

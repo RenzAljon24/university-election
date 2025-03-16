@@ -13,27 +13,26 @@ class StatsOverview extends BaseWidget
 {
     protected function getStats(): array
     {
-        $candidatesCount = Cache::remember('candidates_count', now()->addMinutes(5), function () {
-            return Candidate::count();
-        });
+
 
         $studentsCount = Cache::remember('students_count', now()->addMinutes(5), function () {
             return Student::count();
         });
 
         $totalVotes = Cache::remember('total_votes', now()->addMinutes(5), function () {
-            return Vote::count();
+            return Student::whereHas('votes')->count(); // Count only unique students who have voted
         });
 
-        // Get votes per college using students' 'college' field
+
         $votesPerCollege = Cache::remember('votes_per_college', now()->addMinutes(5), function () {
             return Student::with('votes')
                 ->get()
                 ->groupBy('college') // Group students by college
                 ->mapWithKeys(function ($students, $college) {
-                    return [$college => $students->sum(fn($student) => $student->votes->count())];
+                    return [$college => $students->filter(fn($student) => $student->votes->isNotEmpty())->count()];
                 });
         });
+
 
         // Convert votes per college into Stat cards
         $collegeStats = collect($votesPerCollege)->map(function ($votes, $collegeName) {
@@ -41,9 +40,15 @@ class StatsOverview extends BaseWidget
         })->values()->all();
 
         return array_merge([
-            Stat::make('Candidates', $candidatesCount),
+
             Stat::make('Student Population', $studentsCount),
             Stat::make('Total Votes', $totalVotes),
         ], $collegeStats);
     }
+
+    protected function getColumns(): int
+    {
+        return 4; // Adjust grid width (default is 3)
+    }
+
 }
