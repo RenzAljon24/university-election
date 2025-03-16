@@ -9,9 +9,11 @@ use Filament\Forms\Form;
 use Filament\Forms\Components\Select;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Actions\BulkAction;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Builder;
+
 
 class VoteResource extends Resource
 {
@@ -67,15 +69,23 @@ class VoteResource extends Resource
             ])
             ->modifyQueryUsing(function (Builder $query) {
                 return $query
-                    ->select('votes.student_id')
-                    ->selectRaw('MAX(votes.id) as id') // For actions
-                    ->groupBy('votes.student_id')
-                    ->with(['student']);
+                    ->select('votes.student_id') // Select only once
+                    ->selectRaw('MAX(votes.id) as id, MAX(votes.voted_at) as latest_voted_at')
+                    ->join('students', 'students.id', '=', 'votes.student_id') // Ensure student info is accessible
+                    ->groupBy('votes.student_id') // No need to group by `students.student_id`
+                    ->with(['student', 'candidate', 'election']); // ✅ FIX: Remove `votes.`
             })
-            ->defaultSort('student.student_id', 'asc')
+            ->defaultSort('student_id', 'asc')
+
+
+
+
             ->actions([
-                Tables\Actions\EditAction::make(),
+
                 Tables\Actions\DeleteAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\DeleteBulkAction::make(),
             ]);
     }
 

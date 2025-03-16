@@ -52,7 +52,6 @@ class StudentResource extends Resource
                 TextColumn::make('college')
                     ->sortable()
                     ->badge()
-
                     ->label('College'),
                 TextColumn::make('student_id')->sortable()->searchable(isIndividual: true),
                 TextColumn::make('first_name')->sortable()->searchable(isIndividual: true),
@@ -62,26 +61,20 @@ class StudentResource extends Resource
                 TextColumn::make('session')->sortable()->searchable(),
                 TextColumn::make('semester')->sortable()->searchable(),
                 TextColumn::make('learning_modality')->sortable()->searchable(),
-
                 TextColumn::make('elections.name')
                     ->searchable(isIndividual: true)
                     ->label('Assigned Elections')
-                    ->formatStateUsing(
-                        fn($record) =>
-                        $record->elections->pluck('name')->join(', ')
-                    ),
-
+                    ->formatStateUsing(fn($record) => $record->elections->pluck('name')->join(', ')),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('college')
-                    ->options(Student::query()->pluck('college', 'college')->toArray()),
-
+                    ->options(Student::query()->distinct()->pluck('college', 'college')->toArray()),
                 Tables\Filters\SelectFilter::make('course')
-                    ->options(Student::query()->pluck('course', 'course')->toArray()),
-
+                    ->options(Student::query()->distinct()->pluck('course', 'course')->toArray()),
                 Tables\Filters\SelectFilter::make('semester')
-                    ->options(Student::query()->pluck('semester', 'semester')->toArray()),
+                    ->options(Student::query()->distinct()->pluck('semester', 'semester')->toArray()),
             ])
+            ->modifyQueryUsing(fn($query) => $query->with('elections')->orderBy('college')->orderBy('last_name'))
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
@@ -93,25 +86,20 @@ class StudentResource extends Resource
                     ->form(fn($records) => [
                         Select::make('elections')
                             ->multiple()
-                            ->options(Election::pluck('name', 'id')->toArray()) // Get available elections
+                            ->options(Election::pluck('name', 'id')->toArray())
                             ->label('Assign to Elections')
                             ->default(
                                 $records->flatMap(fn($record) => $record->elections->pluck('id'))->unique()->toArray()
-                            ), // Preload existing elections
+                            ),
                     ])
                     ->action(function ($records, $data) {
-                        $records->each(function ($record) use ($data) {
-                            $record->elections()->sync($data['elections']); // Sync elections
-                        });
+                        $records->each(fn($record) => $record->elections()->sync($data['elections']));
                     })
                     ->deselectRecordsAfterCompletion(),
             ])
-            ->modifyQueryUsing(
-                fn(\Illuminate\Database\Eloquent\Builder $query) =>
-                $query->orderBy('college')->orderBy('last_name')
-            )
             ->searchPlaceholder('Search students...');
     }
+
 
     public static function getRelations(): array
     {

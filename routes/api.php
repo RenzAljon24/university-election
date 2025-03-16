@@ -7,6 +7,7 @@ use App\Models\Partylist;
 use App\Models\Vote;
 use App\Models\Candidate;
 
+use App\Http\Controllers\ElectionController;
 
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Hash;
@@ -204,3 +205,6 @@ Route::get('/student/{id}/voting-status', function ($id) {
         'already_voted' => $alreadyVoted
     ]);
 });
+
+
+Route::get('/election-results', [ElectionController::class, 'getFirstElectionResults']);
