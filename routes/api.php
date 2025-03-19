@@ -5,12 +5,12 @@ use Illuminate\Support\Facades\Route;
 use App\Models\Student;
 use App\Models\Partylist;
 use App\Models\Vote;
-use App\Models\Candidate;
 
+use Illuminate\Support\Facades\Redis;
 use App\Http\Controllers\ElectionController;
 
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\Hash;
+
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 

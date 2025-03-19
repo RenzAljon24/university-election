@@ -13,6 +13,12 @@ use Filament\Tables\Actions\BulkAction;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Tables\Actions\ViewAction;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Grid;
+use Illuminate\Support\HtmlString;
+
 
 
 class VoteResource extends Resource
@@ -20,6 +26,7 @@ class VoteResource extends Resource
     protected static ?string $model = Vote::class;
     protected static ?string $navigationGroup = 'Election Management';
     protected static ?string $navigationIcon = 'heroicon-o-inbox-arrow-down';
+
 
     public static function form(Form $form): Form
     {
@@ -30,9 +37,11 @@ class VoteResource extends Resource
                     ->required(),
                 Select::make('candidate_id')
                     ->relationship('candidate', 'name')
+
                     ->required(),
             ]);
     }
+
 
     public static function table(Table $table): Table
     {
@@ -77,11 +86,53 @@ class VoteResource extends Resource
             })
             ->defaultSort('student_id', 'asc')
 
-
-
-
             ->actions([
+                ViewAction::make()
+                    ->label('View Votes')
+                    ->modalHeading('Vote Details')
+                    ->modalSubheading('Here are the votes for this student')
+                    ->form(function ($record) {
+                        $votes = Vote::where('student_id', $record->student_id)
+                            ->with(['candidate', 'election'])
+                            ->get();
 
+                        $components = [
+                            Grid::make(1) // Single column for centering
+                                ->schema([
+                                    Placeholder::make('student_name')
+                                        ->label('Voter Name')
+                                        ->content($record->student->first_name . ' ' . $record->student->last_name)
+                                        ->columnSpanFull(),
+
+                                    Placeholder::make('student_id')
+                                        ->label('Student ID')
+                                        ->content($record->student->student_id)
+                                        ->columnSpanFull(),
+                                ])
+                                ->columns(2)
+                                ->columnSpanFull(),
+
+                            // Display candidates
+                            ...$votes->map(function ($vote, $key) {
+                                return Placeholder::make("vote_{$key}")
+                                    ->label("Candidate ")
+                                    ->content(
+                                        $vote->candidate
+                                        ? "{$vote->candidate->name} ({$vote->candidate->position} - {$vote->election->name})"
+                                        : "Abstained ({$vote->election->name})"
+                                    );
+                            })->toArray()
+                            ,
+
+                            // Display latest voted date
+                            Placeholder::make('latest_voted_at')
+                                ->label('Voted At')
+                                ->content(Vote::where('student_id', $record->student_id)
+                                    ->max('voted_at')),
+                        ];
+
+                        return $components;
+                    }),
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
@@ -94,12 +145,16 @@ class VoteResource extends Resource
         return [];
     }
 
+
+    public static function canEdit(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        return false;
+    }
     public static function getPages(): array
     {
         return [
             'index' => Pages\ListVotes::route('/'),
-            'create' => Pages\CreateVote::route('/create'),
-            'edit' => Pages\EditVote::route('/{record}/edit'),
         ];
     }
+
 }
