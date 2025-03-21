@@ -8,5 +8,5 @@ use Filament\Resources\Pages\CreateRecord;
 
 class CreateVote extends CreateRecord
 {
-    protected static string $resource = VoteResource::class;
+
 }

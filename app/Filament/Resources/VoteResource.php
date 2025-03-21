@@ -28,19 +28,6 @@ class VoteResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-inbox-arrow-down';
 
 
-    public static function form(Form $form): Form
-    {
-        return $form
-            ->schema([
-                Select::make('student_id')
-                    ->relationship('student', 'student_id')
-                    ->required(),
-                Select::make('candidate_id')
-                    ->relationship('candidate', 'name')
-
-                    ->required(),
-            ]);
-    }
 
 
     public static function table(Table $table): Table
@@ -88,9 +75,9 @@ class VoteResource extends Resource
 
             ->actions([
                 ViewAction::make()
-                    ->label('View Votes')
-                    ->modalHeading('Vote Details')
-                    ->modalSubheading('Here are the votes for this student')
+                    ->label('Ballot Receipt')
+                    ->modalHeading('Ballot Receipt')
+                    ->modalSubheading('Ballot receipt overview.')
                     ->form(function ($record) {
                         $votes = Vote::where('student_id', $record->student_id)
                             ->with(['candidate', 'election'])
@@ -99,11 +86,6 @@ class VoteResource extends Resource
                         $components = [
                             Grid::make(1) // Single column for centering
                                 ->schema([
-                                    Placeholder::make('student_name')
-                                        ->label('Voter Name')
-                                        ->content($record->student->first_name . ' ' . $record->student->last_name)
-                                        ->columnSpanFull(),
-
                                     Placeholder::make('student_id')
                                         ->label('Student ID')
                                         ->content($record->student->student_id)
@@ -133,7 +115,12 @@ class VoteResource extends Resource
 
                         return $components;
                     }),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\DeleteAction::make()
+                    ->before(function ($record) {
+                        // Delete all votes related to the student
+                        Vote::where('student_id', $record->student_id)->delete();
+                    })
+                    ->label('Delete Vote'),
             ])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
@@ -143,6 +130,11 @@ class VoteResource extends Resource
     public static function getRelations(): array
     {
         return [];
+    }
+
+    public static function canCreate(): bool
+    {
+        return false;
     }
 
 
